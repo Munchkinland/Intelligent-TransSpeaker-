@@ -7,10 +7,6 @@ from translate import Translator
 import noisereduce as nr
 import torch
 from TTS.api import TTS
-import argparse
-
-# Constant for input video path
-INPUT_VIDEO_PATH = "path/to/your/video.mp4"  # Replace with the actual path to your video
 
 # Función para obtener la codificación preferida
 def getpreferredencoding(do_setlocale=True):
@@ -41,7 +37,7 @@ def remove_background_noise(audio_file):
       return None
 
 # Paso 3: Transcribir y traducir audio
-def transcribe_and_translate_audio(audio_path, target_language='en'):
+def transcribe_and_translate_audio(audio_path, target_language):
   recognizer = sr.Recognizer()
   try:
       with sr.AudioFile(audio_path) as source:
@@ -61,11 +57,11 @@ def transcribe_and_translate_audio(audio_path, target_language='en'):
       return ""
 
 # Paso 4: Generar audio a partir del texto traducido
-def generate_audio_from_text(vocals_text, speaker_wav):
+def generate_audio_from_text(vocals_text, speaker_wav, target_language):
   try:
       device = "cuda" if torch.cuda.is_available() else "cpu"
       tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(device)
-      tts.tts_to_file(text=vocals_text, speaker_wav=speaker_wav, language="hi", file_path="output.wav")
+      tts.tts_to_file(text=vocals_text, speaker_wav=speaker_wav, language=target_language, file_path="output.wav")
   except Exception as e:
       print(f"Error generating audio from text: {e}")
 
@@ -77,15 +73,10 @@ def merge_video_audio(input_video_path, input_audio_path):
   except subprocess.CalledProcessError as e:
       print(f"Error merging video and audio: {e}")
 
-# Ejecución del flujo de trabajo
-if __name__ == "__main__":
-  parser = argparse.ArgumentParser(description="Video processing application")
-  parser.add_argument("--target_language", default="hi", help="Target language for translation (default: Hindi)")
-  args = parser.parse_args()
-
+def process_video(input_video_path, target_language):
   try:
       print("Extracting audio...")
-      audio_path = extract_audio(INPUT_VIDEO_PATH)
+      audio_path = extract_audio(input_video_path)
       if not audio_path:
           raise Exception("Audio extraction failed")
 
@@ -95,15 +86,15 @@ if __name__ == "__main__":
           raise Exception("Noise reduction failed")
 
       print("Transcribing and translating audio...")
-      vocals_text = transcribe_and_translate_audio(cleaned_audio_file, target_language=args.target_language)
+      vocals_text = transcribe_and_translate_audio(cleaned_audio_file, target_language)
       if not vocals_text:
           raise Exception("Transcription or translation failed")
 
       print("Generating audio from translated text...")
-      generate_audio_from_text(vocals_text, cleaned_audio_file)
+      generate_audio_from_text(vocals_text, cleaned_audio_file, target_language)
 
       print("Merging video and audio...")
-      merge_video_audio(INPUT_VIDEO_PATH, "output.wav")
+      merge_video_audio(input_video_path, "output.wav")
 
       print("Process completed successfully!")
       print("Created/Modified files during execution:")
@@ -113,3 +104,10 @@ if __name__ == "__main__":
 
   except Exception as e:
       print(f"An error occurred: {str(e)}")
+
+# Ejecución del flujo de trabajo
+if __name__ == "__main__":
+  input_video_path = input("Enter the path to your video file: ")
+  target_language = input("Enter the target language code (e.g., 'en' for English, 'es' for Spanish): ")
+  
+  process_video(input_video_path, target_language)
