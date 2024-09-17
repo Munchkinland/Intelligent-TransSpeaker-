@@ -1,0 +1,8 @@
+ffmpeg 
+pydub 
+SpeechRecognition 
+translate 
+TTS 
+moviepy 
+noisereduce 
+torch
