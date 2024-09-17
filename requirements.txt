@@ -6,3 +6,5 @@ TTS
 moviepy 
 noisereduce 
 torch
+
+#Ejecutar .venv Python inferior a 3.9 
