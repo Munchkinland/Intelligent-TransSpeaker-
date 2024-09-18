@@ -9,6 +9,8 @@ torch
 
 #Ejecutar .venv Python inferior a 3.9 
 #Modelo multilingue: https://huggingface.co/coqui/XTTS-v2
+#app_backend.py archivo original sin conexion a frontend
+#app.py conecta con backend y deberia ir a pre-produccion
 '''
 Languages
 XTTS-v2 supports 17 languages: English (en), Spanish (es), French (fr), German (de), Italian (it), Portuguese (pt), Polish (pl), Turkish (tr), Russian (ru), Dutch (nl), Czech (cs), Arabic (ar), Chinese (zh-cn), Japanese (ja), Hungarian (hu), Korean (ko) Hindi (hi).
