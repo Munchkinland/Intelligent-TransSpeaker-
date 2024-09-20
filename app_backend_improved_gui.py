@@ -30,6 +30,20 @@ def getpreferredencoding(do_setlocale=True):
 
 locale.getpreferredencoding = getpreferredencoding
 
+# Mapeo de códigos de idioma para TTS
+TTS_LANG_MAP = {
+  "en": "en",
+  "es": "es",
+  "fr": "fr-fr",
+  "pt": "pt-br",
+  "de": "de",
+  "it": "it-it",
+  # Añade más mapeos según sea necesario
+}
+
+# Lista de idiomas soportados por TTS para el ComboBox
+SUPPORTED_LANGUAGES = ["en", "es", "fr", "pt", "de", "it"]  # Extiende esta lista según TTS
+
 # Clase para el procesamiento en segundo plano
 class VideoProcessingThread(QThread):
   progress = pyqtSignal(int)
@@ -105,7 +119,7 @@ class VideoProcessingThread(QThread):
           # Limpieza de archivos temporales
           cleanup_temp_files(temp_files)
 
-# Definición de funciones (las mismas que antes, sin cambios significativos)
+# Definición de funciones
 def extract_audio(input_video_path):
   output_audio_path = "temp_audio.wav"
   try:
@@ -163,12 +177,21 @@ def generate_audio_from_text(translated_text, speaker_wav, target_language):
   try:
       logging.info("Generando audio a partir del texto traducido...")
       device = "cuda" if torch.cuda.is_available() else "cpu"
-      tts = TTS(model_name="tts_models/multilingual/multi-dataset/your_tts", progress_bar=False, gpu=(device=="cuda"))
+
+      # Mapeo del idioma al formato esperado por TTS
+      tts_language = TTS_LANG_MAP.get(target_language)
+      if not tts_language:
+          logging.error(f"Idioma objetivo '{target_language}' no soportado por TTS.")
+          return None
+
+      # Cargar el modelo de TTS adecuado
+      tts_model_name = "tts_models/multilingual/multi-dataset/your_tts"  # Asegúrate de que este modelo soporte los idiomas mapeados
+      tts = TTS(model_name=tts_model_name, progress_bar=False, gpu=(device=="cuda"))
 
       # Configuración de parámetros
       tts_config = {
           "speaker_wav": speaker_wav,
-          "language": target_language,
+          "language": tts_language,
           "file_path": "output_audio.wav"
       }
 
@@ -206,7 +229,7 @@ class VoiceCloneApp(QWidget):
       super().__init__()
       print("Inicializando la interfaz gráfica...")
       self.setWindowTitle("Clonación y Traducción de Voz en Videos")
-      self.setGeometry(100, 100, 500, 200)
+      self.setGeometry(100, 100, 600, 250)
       self.init_ui()
 
   def init_ui(self):
@@ -226,7 +249,7 @@ class VoiceCloneApp(QWidget):
       # Selección de idioma fuente
       self.source_language_label = QLabel("Idioma fuente:")
       self.source_language_combo = QComboBox()
-      self.source_language_combo.addItems(["es", "en", "fr", "de", "it"])  # Puedes añadir más idiomas
+      self.source_language_combo.addItems(SUPPORTED_LANGUAGES)  # Usa la lista de idiomas soportados
 
       source_language_layout = QHBoxLayout()
       source_language_layout.addWidget(self.source_language_label)
@@ -235,7 +258,7 @@ class VoiceCloneApp(QWidget):
       # Selección de idioma objetivo
       self.target_language_label = QLabel("Idioma objetivo:")
       self.target_language_combo = QComboBox()
-      self.target_language_combo.addItems(["en", "es", "fr", "de", "it"])  # Puedes añadir más idiomas
+      self.target_language_combo.addItems(SUPPORTED_LANGUAGES)  # Usa la lista de idiomas soportados
 
       target_language_layout = QHBoxLayout()
       target_language_layout.addWidget(self.target_language_label)
@@ -261,7 +284,13 @@ class VoiceCloneApp(QWidget):
   def browse_video_file(self):
       print("Seleccionando archivo de video...")
       options = QFileDialog.Options()
-      file_name, _ = QFileDialog.getOpenFileName(self, "Seleccionar archivo de video", "", "Videos (*.mp4 *.avi *.mov)", options=options)
+      file_name, _ = QFileDialog.getOpenFileName(
+          self,
+          "Seleccionar archivo de video",
+          "",
+          "Videos (*.mp4 *.avi *.mov)",
+          options=options
+      )
       if file_name:
           print(f"Archivo de video seleccionado: {file_name}")
           self.video_path_input.setText(file_name)
