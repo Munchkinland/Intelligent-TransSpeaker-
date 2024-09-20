@@ -19,6 +19,8 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 
+print("Iniciando la aplicación...")
+
 # Configuración de logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -41,12 +43,14 @@ class VideoProcessingThread(QThread):
       self.target_language = target_language
 
   def run(self):
+      print(f"Iniciando procesamiento del video: {self.input_video_path}")
       temp_files = []
       try:
           if not os.path.exists(self.input_video_path):
               raise Exception("El archivo de video especificado no existe.")
 
           # Paso 1: Extraer audio
+          print("Paso 1: Extrayendo audio del video...")
           audio_path = extract_audio(self.input_video_path)
           if not audio_path:
               raise Exception("Fallo en la extracción de audio.")
@@ -54,6 +58,7 @@ class VideoProcessingThread(QThread):
           self.progress.emit(10)
 
           # Paso 2: Reducir ruido
+          print("Paso 2: Reduciendo ruido de fondo...")
           cleaned_audio_file = remove_background_noise(audio_path)
           if not cleaned_audio_file:
               raise Exception("Fallo en la reducción de ruido.")
@@ -61,18 +66,21 @@ class VideoProcessingThread(QThread):
           self.progress.emit(30)
 
           # Paso 3: Transcribir audio
+          print("Paso 3: Transcribiendo audio...")
           vocals_text = transcribe_audio_whisper(cleaned_audio_file, self.src_language)
           if not vocals_text:
               raise Exception("Fallo en la transcripción de audio.")
           self.progress.emit(50)
 
           # Paso 4: Traducir texto
+          print("Paso 4: Traduciendo texto...")
           translated_text = translate_text(vocals_text, self.src_language, self.target_language)
           if not translated_text:
               raise Exception("Fallo en la traducción del texto.")
           self.progress.emit(70)
 
           # Paso 5: Generar audio desde el texto traducido
+          print("Paso 5: Generando audio desde el texto traducido...")
           output_audio = generate_audio_from_text(translated_text, cleaned_audio_file, self.target_language)
           if not output_audio:
               raise Exception("Fallo en la generación de audio desde el texto.")
@@ -80,14 +88,17 @@ class VideoProcessingThread(QThread):
           self.progress.emit(90)
 
           # Paso 6: Fusionar video y audio
+          print("Paso 6: Fusionando video y audio...")
           final_output = merge_video_audio(self.input_video_path, output_audio)
           if not final_output:
               raise Exception("Fallo en la fusión de video y audio.")
           self.progress.emit(100)
 
+          print(f"Procesamiento completado. Archivo de salida: {final_output}")
           self.finished.emit(final_output)
 
       except Exception as e:
+          print(f"Error durante el procesamiento: {str(e)}")
           self.error.emit(str(e))
 
       finally:
@@ -193,6 +204,7 @@ def cleanup_temp_files(temp_files):
 class VoiceCloneApp(QWidget):
   def __init__(self):
       super().__init__()
+      print("Inicializando la interfaz gráfica...")
       self.setWindowTitle("Clonación y Traducción de Voz en Videos")
       self.setGeometry(100, 100, 500, 200)
       self.init_ui()
@@ -247,20 +259,25 @@ class VoiceCloneApp(QWidget):
       self.setLayout(layout)
 
   def browse_video_file(self):
+      print("Seleccionando archivo de video...")
       options = QFileDialog.Options()
       file_name, _ = QFileDialog.getOpenFileName(self, "Seleccionar archivo de video", "", "Videos (*.mp4 *.avi *.mov)", options=options)
       if file_name:
+          print(f"Archivo de video seleccionado: {file_name}")
           self.video_path_input.setText(file_name)
 
   def start_processing(self):
+      print("Iniciando el procesamiento del video...")
       video_path = self.video_path_input.text()
       src_language = self.source_language_combo.currentText()
       target_language = self.target_language_combo.currentText()
 
       if not video_path:
+          print("Advertencia: No se ha seleccionado ningún archivo de video.")
           QMessageBox.warning(self, "Advertencia", "Por favor, selecciona un archivo de video.")
           return
 
+      print(f"Configuración: Video: {video_path}, Idioma fuente: {src_language}, Idioma objetivo: {target_language}")
       self.thread = VideoProcessingThread(video_path, src_language, target_language)
       self.thread.progress.connect(self.update_progress)
       self.thread.finished.connect(self.processing_finished)
@@ -270,23 +287,28 @@ class VoiceCloneApp(QWidget):
       self.progress_bar.setValue(0)
 
   def update_progress(self, value):
+      print(f"Progreso: {value}%")
       self.progress_bar.setValue(value)
 
   def processing_finished(self, output_file):
+      print(f"Procesamiento completado. Archivo de salida: {output_file}")
       self.start_button.setEnabled(True)
       QMessageBox.information(self, "Éxito", f"¡Procesamiento completado!\nArchivo de salida: {output_file}")
       self.progress_bar.setValue(100)
 
   def processing_error(self, error_message):
+      print(f"Error durante el procesamiento: {error_message}")
       self.start_button.setEnabled(True)
       QMessageBox.critical(self, "Error", f"Ha ocurrido un error:\n{error_message}")
       self.progress_bar.setValue(0)
 
 # Función principal
 def main():
+  print("Iniciando la aplicación principal...")
   app = QApplication(sys.argv)
   window = VoiceCloneApp()
   window.show()
+  print("Aplicación iniciada y en ejecución.")
   sys.exit(app.exec_())
 
 if __name__ == "__main__":

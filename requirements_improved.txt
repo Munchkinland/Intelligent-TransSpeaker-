@@ -6,3 +6,7 @@ soundfile
 TTS
 openai-whisper
 PyQt5
+sacremoses
+sentencepiece
+whisper
+python-dotenv
