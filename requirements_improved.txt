@@ -10,3 +10,5 @@ sacremoses
 sentencepiece
 whisper
 python-dotenv
+gtts
+noisereduce
